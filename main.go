@@ -22,6 +22,7 @@ func main() {
 	mux.HandleFunc("POST /block", submitBlock)                            // Submit a block
 	mux.HandleFunc("GET /block", getBlock)                                // Get last block
 	mux.HandleFunc("GET /blocks", getBlocks)                              // Get all blocks
+	mux.HandleFunc("GET /supply", getTotalSupply)
 
 	log.Println("Server listening to :8080")
 	http.ListenAndServe(":8080", mux)

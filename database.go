@@ -131,9 +131,9 @@ func queryTransaction(db *sql.DB, id string) (*Transaction, error) {
 	err := row.Scan(&txn.ID, &txn.Sender, &txn.Amount, &txn.Recipient, &txn.Time)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil // No result found
+			return nil, nil
 		}
-		log.Fatal(err) // Log and return the error
+		log.Fatal(err)
 		return nil, err
 	}
 
@@ -242,4 +242,19 @@ func insertBlock(db *sql.DB, block string, prevBlock string, address string, non
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
+}
+
+func getSupply(db *sql.DB) (int, error) {
+	querySQL := "SELECT SUM(balance) FROM addresses"
+	var totalBalance int
+
+	err := db.QueryRow(querySQL).Scan(&totalBalance)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, nil
+		}
+		return 0, err
+	}
+
+	return totalBalance, nil
 }

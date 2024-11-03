@@ -42,7 +42,7 @@ func getAddress(w http.ResponseWriter, r *http.Request) {
 			Balance: balance,
 		}
 
-		writeJSONResponse(w, http.StatusOK, response)
+		writeJSONResponse(w, http.StatusOK, map[string]interface{}{"ok": true, "data": response})
 	} else {
 		response := map[string]interface{}{"ok": false, "error": "invalid address"}
 		writeJSONResponse(w, http.StatusBadRequest, response)
@@ -105,15 +105,17 @@ func getTransaction(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	transaction, err := queryTransaction(sqliteDatabase, id)
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		response := map[string]interface{}{"ok": false, "error": "internal server error"}
+		writeJSONResponse(w, http.StatusInternalServerError, response)
 		return
 	}
 	if transaction == nil {
-		http.Error(w, "transaction not found", http.StatusNotFound)
+		response := map[string]interface{}{"ok": false, "error": "transaction not found"}
+		writeJSONResponse(w, http.StatusNotFound, response)
 		return
 	}
 
-	writeJSONResponse(w, http.StatusOK, transaction)
+	writeJSONResponse(w, http.StatusOK, map[string]interface{}{"ok": true, "transaction": transaction})
 }
 
 func getTransactions(w http.ResponseWriter, r *http.Request) {
@@ -149,11 +151,12 @@ func getAddressTransactions(w http.ResponseWriter, r *http.Request) {
 func getBlock(w http.ResponseWriter, r *http.Request) {
 	block, err := queryBlock(sqliteDatabase)
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		response := map[string]interface{}{"ok": false, "error": "internal server error"}
+		writeJSONResponse(w, http.StatusInternalServerError, response)
 		return
 	}
 
-	writeJSONResponse(w, http.StatusOK, map[string]string{"block": block})
+	writeJSONResponse(w, http.StatusOK, map[string]interface{}{"ok": true, "block": block})
 }
 
 func getBlocks(w http.ResponseWriter, r *http.Request) {
@@ -210,4 +213,20 @@ func submitBlock(w http.ResponseWriter, r *http.Request) {
 		response := map[string]interface{}{"ok": false, "error": "previous block mismatch"}
 		writeJSONResponse(w, http.StatusBadRequest, response)
 	}
+}
+
+func getTotalSupply(w http.ResponseWriter, r *http.Request) {
+	totalBalance, err := getSupply(sqliteDatabase)
+	if err != nil {
+		response := map[string]interface{}{"ok": false, "error": "internal server error"}
+		writeJSONResponse(w, http.StatusInternalServerError, response)
+		return
+	}
+
+	response := map[string]interface{}{
+		"ok":          true,
+		"totalSupply": totalBalance,
+	}
+
+	writeJSONResponse(w, http.StatusOK, response)
 }
