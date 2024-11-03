@@ -1,4 +1,4 @@
-module github.com/hypnophobe/GoCredits
+module github.com/hypnophobe/go-cash
 
 go 1.23.2
 
