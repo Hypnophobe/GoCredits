@@ -27,7 +27,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	defer sqliteDatabase.Close() // Ensure the database is closed when done
+	defer sqliteDatabase.Close()
 
 	createAddressesTable(sqliteDatabase)
 	createTransactionsTable(sqliteDatabase)
@@ -91,6 +91,7 @@ func createBlocksTable(db *sql.DB) {
 	insertSQL := `INSERT INTO blocks(block, prevBlock, address, nonce, time) VALUES (?, ?, ?, ?, ?)` // genesis block
 	statement, err = db.Prepare(insertSQL)
 
+	log.Println("Create genesis block...")
 	if err != nil {
 		log.Fatalln(err.Error())
 	}

@@ -10,8 +10,11 @@ import (
 var sqliteDatabase *sql.DB
 
 func loadDatabase() {
-	sqliteDatabase, _ = sql.Open("sqlite3", "./sqlite-database.db")
-	defer sqliteDatabase.Close()
+	var err error
+	sqliteDatabase, err = sql.Open("sqlite3", "./sqlite-database.db")
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 }
 
 func insertAddress(db *sql.DB, address string, balance int) {

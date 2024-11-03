@@ -4,9 +4,13 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 )
+
+type getAddressResponse struct {
+	Address string `json:"address"`
+	Balance int    `json:"balance"`
+}
 
 type TransactionRequest struct {
 	Pkey    string `json:"pkey"`
@@ -21,19 +25,27 @@ type submittedBlock struct {
 	Nonce         string `json:"nonce"`
 }
 
+func writeJSONResponse(w http.ResponseWriter, statusCode int, response interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(response)
+}
+
 func getAddress(w http.ResponseWriter, r *http.Request) {
-	address := r.PathValue("address")
+	address := r.URL.Query().Get("address")
 
 	if validateAddress(address) {
 		balance := queryAddress(sqliteDatabase, address)
 
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(strconv.Itoa(balance)))
-		return
+		response := getAddressResponse{
+			Address: address,
+			Balance: balance,
+		}
+
+		writeJSONResponse(w, http.StatusOK, response)
 	} else {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("invalid"))
-		return
+		response := map[string]interface{}{"ok": false, "error": "invalid address"}
+		writeJSONResponse(w, http.StatusBadRequest, response)
 	}
 }
 
@@ -41,7 +53,8 @@ func createTransaction(w http.ResponseWriter, r *http.Request) {
 	var req TransactionRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid", http.StatusBadRequest)
+		response := map[string]interface{}{"ok": false, "error": "invalid request body"}
+		writeJSONResponse(w, http.StatusBadRequest, response)
 		return
 	}
 
@@ -60,31 +73,35 @@ func createTransaction(w http.ResponseWriter, r *http.Request) {
 			}
 
 			insertTransaction(sqliteDatabase, senderAddress, req.Amount, req.Address, int(time.Now().Unix()))
-			w.WriteHeader(http.StatusOK)
+
+			response := map[string]interface{}{"ok": true}
+			writeJSONResponse(w, http.StatusOK, response)
 		} else {
-			http.Error(w, "insufficient", http.StatusBadRequest)
+			response := map[string]interface{}{"ok": false, "error": "insufficient funds"}
+			writeJSONResponse(w, http.StatusBadRequest, response)
 		}
 	} else {
-		http.Error(w, "invalid", http.StatusBadRequest)
+		response := map[string]interface{}{"ok": false, "error": "invalid address"}
+		writeJSONResponse(w, http.StatusBadRequest, response)
 	}
 }
 
 func getBlock(w http.ResponseWriter, r *http.Request) {
 	block, err := queryBlock(sqliteDatabase)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(block))
+	writeJSONResponse(w, http.StatusOK, map[string]string{"block": block})
 }
 
 func submitBlock(w http.ResponseWriter, r *http.Request) {
 	var req submittedBlock
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid", http.StatusBadRequest)
+		response := map[string]interface{}{"ok": false, "error": "invalid request body"}
+		writeJSONResponse(w, http.StatusBadRequest, response)
 		return
 	}
 
@@ -107,11 +124,15 @@ func submitBlock(w http.ResponseWriter, r *http.Request) {
 			}
 
 			insertTransaction(sqliteDatabase, "null", 1, req.Address, int(time.Now().Unix()))
+			response := map[string]interface{}{"ok": true}
+			writeJSONResponse(w, http.StatusOK, response)
 			return
 		} else {
-			http.Error(w, "invalid", http.StatusBadRequest)
+			response := map[string]interface{}{"ok": false, "error": "invalid block"}
+			writeJSONResponse(w, http.StatusBadRequest, response)
 		}
 	} else {
-		http.Error(w, "invalid", http.StatusBadRequest)
+		response := map[string]interface{}{"ok": false, "error": "previous block mismatch"}
+		writeJSONResponse(w, http.StatusBadRequest, response)
 	}
 }
