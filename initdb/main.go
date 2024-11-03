@@ -88,7 +88,7 @@ func createBlocksTable(db *sql.DB) {
 	statement.Exec()
 	log.Println("blocks table created")
 
-	insertSQL := `INSERT INTO blocks(block, prevBlock, address, nonce, time) VALUES (?, ?, ?, ?, ?)` // genesis block
+	insertSQL := `INSERT INTO blocks(block, prevBlock, address, nonce, time) VALUES (?, ?, ?, ?, ?)`
 	statement, err = db.Prepare(insertSQL)
 
 	log.Println("Create genesis block...")

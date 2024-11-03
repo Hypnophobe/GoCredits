@@ -32,7 +32,7 @@ func writeJSONResponse(w http.ResponseWriter, statusCode int, response interface
 }
 
 func getAddress(w http.ResponseWriter, r *http.Request) {
-	address := r.URL.Query().Get("address")
+	address := r.PathValue("address")
 
 	if validateAddress(address) {
 		balance := queryAddress(sqliteDatabase, address)
@@ -47,6 +47,21 @@ func getAddress(w http.ResponseWriter, r *http.Request) {
 		response := map[string]interface{}{"ok": false, "error": "invalid address"}
 		writeJSONResponse(w, http.StatusBadRequest, response)
 	}
+}
+
+func getAddresses(w http.ResponseWriter, r *http.Request) {
+	addresses, err := queryAddresses(sqliteDatabase)
+	if err != nil {
+		response := map[string]interface{}{"ok": false, "error": "failed to retrieve addresses"}
+		writeJSONResponse(w, http.StatusInternalServerError, response)
+		return
+	}
+
+	response := map[string]interface{}{
+		"ok":        true,
+		"addresses": addresses,
+	}
+	writeJSONResponse(w, http.StatusOK, response)
 }
 
 func createTransaction(w http.ResponseWriter, r *http.Request) {
@@ -86,6 +101,51 @@ func createTransaction(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func getTransaction(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	transaction, err := queryTransaction(sqliteDatabase, id)
+	if err != nil {
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	if transaction == nil {
+		http.Error(w, "transaction not found", http.StatusNotFound)
+		return
+	}
+
+	writeJSONResponse(w, http.StatusOK, transaction)
+}
+
+func getTransactions(w http.ResponseWriter, r *http.Request) {
+	transactions, err := queryTransactions(sqliteDatabase)
+	if err != nil {
+		response := map[string]interface{}{"ok": false, "error": "failed to retrieve addresses"}
+		writeJSONResponse(w, http.StatusInternalServerError, response)
+		return
+	}
+
+	response := map[string]interface{}{
+		"ok":           true,
+		"transactions": transactions,
+	}
+	writeJSONResponse(w, http.StatusOK, response)
+}
+
+func getAddressTransactions(w http.ResponseWriter, r *http.Request) {
+	transactions, err := queryAddressTransactions(sqliteDatabase, r.PathValue("address"))
+	if err != nil {
+		response := map[string]interface{}{"ok": false, "error": "failed to retrieve addresses"}
+		writeJSONResponse(w, http.StatusInternalServerError, response)
+		return
+	}
+
+	response := map[string]interface{}{
+		"ok":           true,
+		"transactions": transactions,
+	}
+	writeJSONResponse(w, http.StatusOK, response)
+}
+
 func getBlock(w http.ResponseWriter, r *http.Request) {
 	block, err := queryBlock(sqliteDatabase)
 	if err != nil {
@@ -94,6 +154,21 @@ func getBlock(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSONResponse(w, http.StatusOK, map[string]string{"block": block})
+}
+
+func getBlocks(w http.ResponseWriter, r *http.Request) {
+	blocks, err := queryBlocks(sqliteDatabase)
+	if err != nil {
+		response := map[string]interface{}{"ok": false, "error": "failed to retrieve blocks"}
+		writeJSONResponse(w, http.StatusInternalServerError, response)
+		return
+	}
+
+	response := map[string]interface{}{
+		"ok":     true,
+		"blocks": blocks,
+	}
+	writeJSONResponse(w, http.StatusOK, response)
 }
 
 func submitBlock(w http.ResponseWriter, r *http.Request) {
