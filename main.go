@@ -8,8 +8,7 @@ import (
 )
 
 func main() {
-	setupDatabase()
-	defer sqliteDatabase.Close()
+	loadDatabase()
 
 	mux := http.NewServeMux()
 
